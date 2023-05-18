@@ -32,9 +32,23 @@ class App extends Component {
   }
 
   async loadBlockchainData() {
-    if (!ethereum || !this.state.account) {
+    if (!ethereum) {
       return
     }
+
+    try {
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+      if (accounts.length === 0) {
+        return
+      }
+  
+      this.setState({ account: accounts[0] })
+    } catch (error) {
+      console.log(error)
+      return
+    }
+
+
     const provider = new ethers.providers.Web3Provider(ethereum);
     const signer = provider.getSigner();
     const ethBalance = await signer.getBalance();
@@ -54,8 +68,34 @@ class App extends Component {
 
   async connectMetamask() {
     try {
+      if (!ethereum) {
+        window.alert('Non-Ethereum browser detected. You should consider trying MetaMask!')
+        return
+      }
+
       const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
-      this.loadBlockchainData();
+
+      if (accounts.length === 0) {
+        return
+      }
+
+      this.setState({ account: accounts[0] })
+
+      const provider = new ethers.providers.Web3Provider(ethereum);
+      const signer = provider.getSigner();
+      const ethBalance = await signer.getBalance();
+
+      this.setState({ ethBalance })
+
+      const token = getTokenContract();
+      this.setState({ token })
+      let tokenBalance = await token.balanceOf(this.state.account);
+      this.setState({ tokenBalance: tokenBalance })
+
+      const ethSwap = getEthSwapContract();
+      this.setState({ ethSwap })
+
+      this.setState({ loading: false })
     } catch (error) {
       console.log(error)
     }
@@ -78,9 +118,6 @@ class App extends Component {
         this.setState({ account: accounts[0] })
         return
       }
-      
-      window.alert('Please login with MetaMask')
-      return
     }
   }
 
@@ -153,7 +190,7 @@ class App extends Component {
 
     return (
       <div>
-        <Navbar account={this.state.account} connectMetamask={this.connectMetamask}/>
+        <Navbar account={this.state.account} connectMetamask={this.connectMetamask} />
         <div className="container-fluid" style={{
           marginTop: '80px',
         }}>
