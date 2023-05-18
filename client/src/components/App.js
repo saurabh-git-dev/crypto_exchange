@@ -32,10 +32,10 @@ class App extends Component {
   }
 
   async loadBlockchainData() {
-    const accounts = await ethereum.request({ method: 'eth_accounts' })
-    this.setState({ account: accounts[0] })
-
-    const provider = new ethers.providers.Web3Provider(window.ethereum);
+    if (!ethereum || !this.state.account) {
+      return
+    }
+    const provider = new ethers.providers.Web3Provider(ethereum);
     const signer = provider.getSigner();
     const ethBalance = await signer.getBalance();
 
@@ -52,18 +52,50 @@ class App extends Component {
     this.setState({ loading: false })
   }
 
+  async connectMetamask() {
+    try {
+      const accounts = await ethereum.request({ method: 'eth_requestAccounts' })
+      this.loadBlockchainData();
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
   async loadWeb3() {
     if (!window.ethereum) {
       window.alert('Non-Ethereum browser detected. You should consider trying MetaMask!')
+    }
+
+    if (window.ethereum) {
+      const accounts = await ethereum.request({ method: 'eth_accounts' })
+      ethereum.on('accountsChanged', (accounts) => {
+        if (accounts.length > 0) {
+          this.setState({ account: accounts[0] })
+        }
+      })
+
+      if (accounts.length > 0) {
+        this.setState({ account: accounts[0] })
+        return
+      }
+      
+      window.alert('Please login with MetaMask')
+      return
     }
   }
 
   buyTokens = async (etherAmount) => {
     try {
+      if (this.state.account === undefined) {
+        window.alert('Please connect to the Ethereum network with MetaMask.')
+        return
+      }
       this.setState({ loading: true })
       const tx = await this.state.ethSwap.buyTokens({ value: etherAmount, from: this.state.account })
+      window.alert("Token purchase request sent. Please wait for the transaction to complete.")
     } catch (error) {
       console.log(error)
+      window.alert("Something went wrong. Please try again later.")
     } finally {
       this.setState({ loading: false })
     }
@@ -71,18 +103,19 @@ class App extends Component {
 
   sellTokens = async (tokenAmount) => {
     try {
+      if (this.state.account === undefined) {
+        window.alert('Please connect to the Ethereum network with MetaMask.')
+        return
+      }
       console.log(this.state.ethSwap)
       const approveTx = await this.state.token.approve(this.state.ethSwap.address, tokenAmount, { from: this.state.account });
       console.log(approveTx)
       const tx = await this.state.ethSwap.sellTokens(tokenAmount, { from: this.state.account, gasLimit: 3000000, gasPrice: 10000000000 });
       console.log(tx)
-      // this.state.token.approve(this.state.ethSwap._address, tokenAmount).send({ from: this.state.account }).on('transactionHash', (hash) => {
-      //   this.state.ethSwap.sellTokens(tokenAmount).send({ from: this.state.account }).on('transactionHash', (hash) => {
-      //     this.setState({ loading: false })
-      //   })
-      // })
+      window.alert("Token sell request sent. Please wait for the transaction to complete.")
     } catch (error) {
       console.log(error)
+      window.alert("Something went wrong. Please try again later.")
     } finally {
       this.setState({ loading: false })
     }
@@ -120,8 +153,10 @@ class App extends Component {
 
     return (
       <div>
-        <Navbar account={this.state.account} />
-        <div className="container-fluid mt-5">
+        <Navbar account={this.state.account} connectMetamask={this.connectMetamask}/>
+        <div className="container-fluid" style={{
+          marginTop: '80px',
+        }}>
           <div className="row">
             <main role="main" className="col-lg-12 ml-auto mr-auto" style={{ maxWidth: '600px' }}>
               <div className="content mr-auto ml-auto">

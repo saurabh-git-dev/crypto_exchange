@@ -3,7 +3,7 @@ import Identicon from 'identicon.js'
 class Navbar extends Component {
   render() {    
     return (
-      <nav className="navbar navbar-dark fixed-top bg-dark flex-md-nowrap p-0 shadow">
+      <nav className="navbar navbar-dark fixed-top bg-dark flex-md-nowrap py-3 px-1 shadow">
           <a
             className="navbar-brand col-sm-3 col-md-2 mr-0"
             href="#"
@@ -25,7 +25,8 @@ class Navbar extends Component {
                 src={`data:image/png;base64,${new Identicon(this.props.account, 30).toString()}`}
                 alt=""
               />
-              : <span></span>
+              : 
+              <button onClick={this.props.connectMetamask} className="btn btn-success btn-block btn-sm">Connect Metamask</button>
             }       
           </li>
         </ul>
